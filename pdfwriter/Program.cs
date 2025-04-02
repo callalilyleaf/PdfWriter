@@ -1,5 +1,6 @@
 ﻿
 using System;
+using System.Text;
 using System.IO;
 using iTextSharp.text;
 using iTextSharp.text.pdf;
@@ -16,40 +17,54 @@ using Org.BouncyCastle.Asn1.X509.SigI;
 
 public class PdfWriter
 {   
-    public static void FillFormField(string inputPdfPath, string outputPdfPath, string fieldName, string inputFileName)
+    public static void FillFormField(string outputPdfPath, string fieldName, string inputFileName)
     {
-        string cleanName = "";
+        string cleanName;
+        string inputPdfPath;
         try
         {   
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            
             inputFileName = inputFileName.Replace(" ", ""); // Remove spaces
             string personNameWPdf = inputFileName.Replace("(", "").Replace(")", ""); // Remove parentheses from the field value
             string personNameWLevel = personNameWPdf.Remove(personNameWPdf.Length - 4); // Replace spaces with underscores
-            Console.WriteLine("Certification person Name w/ Level Loaded: " + personNameWLevel);
             Console.WriteLine("");
+            Console.WriteLine("Certification person Name w/ Level Loading: " + personNameWLevel);
             string level = personNameWLevel.Last().ToString(); // get the certificate level
 
             string fullName = personNameWLevel.Remove(personNameWLevel.Length - 1); // get the clean Name, ready to put it
             cleanName = NameSplitter.AddSpaceBeforeLastName(fullName);
-            NameSplitter.Test();
+
+            cleanName = SanitizeName(cleanName);
+            // NameSplitter.Test();
             Console.WriteLine("Inserting Student Name: " + cleanName + " for " + level + " level certificate.");
+
+            // Get the base directory of the application
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
             
             if (level == "B")
             {
-                inputPdfPath = "Certificate PDF writer/pdfwriter/certificateTemplate/basic";
+                inputPdfPath = Path.Combine(baseDir, "certificateTemplate", "basic", "BasicCertificate-Editable.pdf");
             }
             else if (level == "S")
             {
-                inputPdfPath = "Certificate PDF writer/pdfwriter/certificateTemplate/silver";
+                inputPdfPath = Path.Combine(baseDir, "certificateTemplate", "silver", "SilverCertificate-Editable.pdf");
             }
             else if (level == "G")
             {
-                inputPdfPath = "Certificate PDF writer/pdfwriter/certificateTemplate/gold";
+                inputPdfPath = Path.Combine(baseDir, "certificateTemplate", "gold", "GoldCertificate-Editable.pdf");
             }
             else 
             {
-                inputPdfPath = "Certificate PDF writer/pdfwriter/certificateTemplate/basic"; // default to basic if no level is found
                 throw new Exception("Invalid level detected in the filename. Please ensure the filename contains with (B), (S), or (G).");
             }
+
+            if (!File.Exists(inputPdfPath))
+            {
+                throw new FileNotFoundException($"Template PDF file not found: '{inputPdfPath}");
+            }
+
+
             using (PdfReader reader = new PdfReader(inputPdfPath)) // use different templates here
             {
                 using (FileStream fs = new FileStream(outputPdfPath, FileMode.Create, FileAccess.Write, FileShare.None))
@@ -70,8 +85,36 @@ public class PdfWriter
         }
         catch (Exception e)
         {
-            Console.WriteLine($"An error occurred: {e.Message}");
+            Console.WriteLine($"An error occurred while inserting names: {e.Message}");
+            Console.WriteLine($"Stack Trace: {e.StackTrace}");
         }
+    }
+
+    private static string SanitizeName(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return name;
+            
+        StringBuilder sb = new StringBuilder();
+        foreach (char c in name)
+        {
+            // Only keep ASCII characters and common punctuation
+            if ((c >= 32 && c <= 126) || c == ' ')
+            {
+                sb.Append(c);
+            }
+            else
+            {
+                // Replace non-ASCII characters with their closest ASCII equivalent
+                if (c == 'é' || c == 'è' || c == 'ê' || c == 'ë') sb.Append('e');
+                else if (c == 'à' || c == 'á' || c == 'â' || c == 'ã' || c == 'ä') sb.Append('a');
+                else if (c == 'ì' || c == 'í' || c == 'î' || c == 'ï') sb.Append('i');
+                else if (c == 'ò' || c == 'ó' || c == 'ô' || c == 'õ' || c == 'ö') sb.Append('o');
+                else if (c == 'ù' || c == 'ú' || c == 'û' || c == 'ü') sb.Append('u');
+                else sb.Append('?'); // Replace other special characters with a question mark
+            }
+        }
+        return sb.ToString();
     }
 
     public static void ProcessPdfFilesInDirectory(string inputDirectory, string outputDirectory, string fieldName)
@@ -89,20 +132,20 @@ public class PdfWriter
             {
                 string inputFileName = Path.GetFileName(inputPdfPath);
                 string outputPdfPath = Path.Combine(outputDirectory, inputFileName);
-                FillFormField(inputPdfPath, outputPdfPath, fieldName, inputFileName);
+                FillFormField(outputPdfPath, fieldName, inputFileName);
             }
         }
         catch (Exception e)
         {
-            Console.WriteLine($"An error occurred: {e.Message}");
+            Console.WriteLine($"An error occurred while loading pdf paths: {e.Message}");
         }
     }
 
 
     public static void Main(string[] args)
     {
-        string inputDirectory = "C:/Users/calla/桌面/programming/Career Center/Certificate PDF writer/pdfwriter/originalpdf"; // Replace with your input directory
-        string outputDirectory = "C:/Users/calla/桌面/programming/Career Center/Certificate PDF writer/pdfwriter/correctedpdf"; // Replace with your output directory
+        string inputDirectory = "../originalpdf"; // Replace with your input directory for original PDFs
+        string outputDirectory = "../correctedpdf"; // Replace with your output directory for modified PDFs
         string fieldName = "PlaceNameHere"; // Replace with the actual name of the form field
 
         ProcessPdfFilesInDirectory(inputDirectory, outputDirectory, fieldName);

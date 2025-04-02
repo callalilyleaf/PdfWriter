@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("pdfwriter")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6b5b1553b5cb5c3d276353af5b7568ed7b33a4f5")]
 [assembly: System.Reflection.AssemblyProductAttribute("pdfwriter")]
 [assembly: System.Reflection.AssemblyTitleAttribute("pdfwriter")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
